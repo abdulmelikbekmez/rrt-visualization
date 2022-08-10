@@ -6,7 +6,7 @@ from decorators import synchronized
 from drawable import Drawable
 from node import Connection, Node
 from pygame.surface import Surface
-from pygame.draw import circle, line
+from pygame.draw import line
 from constants import *
 from random import randint as r
 
@@ -16,7 +16,7 @@ class RRT(Drawable):
 
     def __init__(self, head_pos: Vector2) -> None:
         super().__init__()
-        self.head = Node(head_pos)
+        self.head = Node(head_pos, 0)
         self.started = False
         self.stop = False
 
@@ -25,7 +25,8 @@ class RRT(Drawable):
         l = [self.head]
         while l:
             node = l.pop()
-            circle(screen, node.color, node.pos, node.radius)
+            node.draw(screen)
+            # circle(screen, node.color, node.pos, node.radius)
             l.extend(node.childs)
             for child in node.childs:
                 line(screen, Color(0, 0, 0), node.pos, child.pos)
@@ -52,13 +53,13 @@ class RRT(Drawable):
     def __get_dif(self, goal: Vector2) -> bool:
         random_point = Vector2(r(0, WIDTH), r(0, HEIGHT))
         node = self.__get_closest_node(random_point)
-        closest_point = self.__get_closest_point_from_node(node._from, random_point)
-        to_add = Node(closest_point, node._from)
-        node._from.childs.append(to_add)
+        closest_point = self.__get_closest_point_from_node(
+            node._from, random_point)
+        child_node = node._from.add_child(closest_point)
         if (closest_point - goal).length() > self.MARGIN:
             return True
         else:
-            to_add.set_selected()
+            child_node.set_selected()
             return False
 
     def __runnable(self, goal: Vector2):
