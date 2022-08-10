@@ -46,14 +46,6 @@ class RRT(Drawable):
 
         return min(l, key=lambda x: x.length)._from
 
-    def __get_closest_point_from_node(self, node: Node, point: Vector2) -> Vector2:
-        dif = point - node.pos
-        if dif.length() <= self.MARGIN_MAX:
-            return point
-
-        dir = dif.normalize()
-        return node.pos + dir * self.MARGIN_MAX
-
     def refactor_angle(self, angle: float):
         x = -1 if angle < 0 else 1
         angle = abs(angle)
