@@ -22,6 +22,7 @@ class RRT(Drawable):
     def __init__(self, head_pos: Vector2) -> None:
         super().__init__()
         self.head = Node(head_pos, 0)
+        self.tail = self.head
         self.count = 1
         self.started = False
         self.stop = False
@@ -90,6 +91,7 @@ class RRT(Drawable):
         closest_point = self.__get_closest_point_from_node_with_max_angle(
             node, random_point)
         child_node = node.add_child(closest_point)
+        self.tail = child_node
         self.count += 1
         if (closest_point - goal).length() > self.MARGIN_MAX:
             return True
@@ -100,6 +102,12 @@ class RRT(Drawable):
     def __runnable(self, goal: Vector2):
         while self.__create_new_node(goal) and not self.stop:
             sleep(0.01)
+        tmp = self.tail
+        while tmp:
+            parent = tmp.parent
+            if parent:
+                parent.childs = [n for n in parent.childs if n is tmp]
+            tmp = parent
 
     def main(self, goal: Vector2):
         self.started = True
