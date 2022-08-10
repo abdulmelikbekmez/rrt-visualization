@@ -14,7 +14,8 @@ import numpy as np
 
 
 class RRT(Drawable):
-    MARGIN = 75
+    MARGIN_MAX = 75
+    MARGIN_MIN = 60
     MAX_ANGLE = 30
     BIAS = .5
 
@@ -35,7 +36,7 @@ class RRT(Drawable):
             for child in node.childs:
                 line(screen, Color(0, 0, 0), node.pos, child.pos)
 
-    def __get_closest_node(self, to: Vector2) -> Connection:
+    def __get_closest_node(self, to: Vector2) -> Node:
         l: list[Connection] = list()
         node_list = [self.head]
         while node_list:
@@ -43,15 +44,15 @@ class RRT(Drawable):
             l.append(Connection(node, (node.pos - to).length()))
             node_list.extend(node.childs)
 
-        return min(l, key=lambda x: x.length)
+        return min(l, key=lambda x: x.length)._from
 
     def __get_closest_point_from_node(self, node: Node, point: Vector2) -> Vector2:
         dif = point - node.pos
-        if dif.length() <= self.MARGIN:
+        if dif.length() <= self.MARGIN_MAX:
             return point
 
         dir = dif.normalize()
-        return node.pos + dir * self.MARGIN
+        return node.pos + dir * self.MARGIN_MAX
 
     def refactor_angle(self, angle: float):
         x = -1 if angle < 0 else 1
@@ -59,12 +60,20 @@ class RRT(Drawable):
         angle = min(self.MAX_ANGLE / 2, angle)
         return angle * x
 
+    def refactor_length(self, length: float):
+        if length > self.MARGIN_MAX:
+            return self.MARGIN_MAX
+        elif length < self.MARGIN_MIN:
+            return self.MARGIN_MIN
+        else:
+            return length
+
     def __get_closest_point_from_node_with_max_angle(self, node: Node, point: Vector2) -> Vector2:
         dif = point - node.pos
         tmp_angle = np.rad2deg(np.arctan2(dif.y, dif.x))
         dif_angle = node.angle - tmp_angle
         dif_angle = self.refactor_angle(dif_angle)
-        length = dif.length() if dif.length() < self.MARGIN else self.MARGIN
+        length = self.refactor_length(dif.length())
         v = Vector2()
         v.from_polar((length, node.angle - dif_angle))
         return node.pos + v
@@ -84,10 +93,10 @@ class RRT(Drawable):
         random_point = self.generate_random_point(goal)
         node = self.__get_closest_node(random_point)
         closest_point = self.__get_closest_point_from_node_with_max_angle(
-            node._from, random_point)
-        child_node = node._from.add_child(closest_point)
+            node, random_point)
+        child_node = node.add_child(closest_point)
         self.count += 1
-        if (closest_point - goal).length() > self.MARGIN:
+        if (closest_point - goal).length() > self.MARGIN_MAX:
             return True
         else:
             child_node.set_selected()
