@@ -49,7 +49,10 @@ class RRT(Drawable):
     def refactor_angle(self, angle: float):
         x = -1 if angle < 0 else 1
         angle = abs(angle)
-        angle = min(self.MAX_ANGLE / 2, angle)
+        if angle < 90:
+            angle = min(self.MAX_ANGLE / 2, angle)
+        else:
+            angle = max(180 - self.MAX_ANGLE / 2, 180 - angle)
         return angle * x
 
     def refactor_length(self, length: float):
