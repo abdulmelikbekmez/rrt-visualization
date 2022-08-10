@@ -9,14 +9,19 @@ from pygame.surface import Surface
 from pygame.draw import line
 from constants import *
 from random import randint as r
+from random import random
+import numpy as np
 
 
 class RRT(Drawable):
-    MARGIN = 50
+    MARGIN = 75
+    MAX_ANGLE = 30
+    BIAS = .5
 
     def __init__(self, head_pos: Vector2) -> None:
         super().__init__()
         self.head = Node(head_pos, 0)
+        self.count = 1
         self.started = False
         self.stop = False
 
@@ -26,7 +31,6 @@ class RRT(Drawable):
         while l:
             node = l.pop()
             node.draw(screen)
-            # circle(screen, node.color, node.pos, node.radius)
             l.extend(node.childs)
             for child in node.childs:
                 line(screen, Color(0, 0, 0), node.pos, child.pos)
@@ -49,13 +53,40 @@ class RRT(Drawable):
         dir = dif.normalize()
         return node.pos + dir * self.MARGIN
 
+    def refactor_angle(self, angle: float):
+        x = -1 if angle < 0 else 1
+        angle = abs(angle)
+        angle = min(self.MAX_ANGLE / 2, angle)
+        return angle * x
+
+    def __get_closest_point_from_node_with_max_angle(self, node: Node, point: Vector2) -> Vector2:
+        dif = point - node.pos
+        tmp_angle = np.rad2deg(np.arctan2(dif.y, dif.x))
+        dif_angle = node.angle - tmp_angle
+        dif_angle = self.refactor_angle(dif_angle)
+        length = dif.length() if dif.length() < self.MARGIN else self.MARGIN
+        v = Vector2()
+        v.from_polar((length, node.angle - dif_angle))
+        return node.pos + v
+
+    def generate_random_point(self, goal: Vector2) -> Vector2:
+        rand = random()
+        if rand < self.BIAS:
+            return goal
+
+        return Vector2(r(0, WIDTH), r(0, HEIGHT))
+
     @synchronized(lock)
-    def __get_dif(self, goal: Vector2) -> bool:
-        random_point = Vector2(r(0, WIDTH), r(0, HEIGHT))
+    def __create_new_node(self, goal: Vector2) -> bool:
+        """
+        Creates new node randomly and returns True if new node is close enough to goal 
+        """
+        random_point = self.generate_random_point(goal)
         node = self.__get_closest_node(random_point)
-        closest_point = self.__get_closest_point_from_node(
+        closest_point = self.__get_closest_point_from_node_with_max_angle(
             node._from, random_point)
         child_node = node._from.add_child(closest_point)
+        self.count += 1
         if (closest_point - goal).length() > self.MARGIN:
             return True
         else:
@@ -63,7 +94,7 @@ class RRT(Drawable):
             return False
 
     def __runnable(self, goal: Vector2):
-        while self.__get_dif(goal) and not self.stop:
+        while self.__create_new_node(goal) and not self.stop:
             sleep(0.01)
 
     def main(self, goal: Vector2):
