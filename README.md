@@ -1,7 +1,11 @@
 # About
 
-Its pygame based rrt search algorithm visualization tool. To start with just pick 2 random point watch the beauty.
+Its pygame based rrt search algorithm visualization tool. To start with just pick 2 random point and watch the beauty.
 To reset just press "r" button.
+
+# Prerequests
+
+- python version 3.10 and higher
 
 # Install
 ```python

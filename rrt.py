@@ -17,15 +17,28 @@ class RRT(Drawable):
     MARGIN_MAX = 75
     MARGIN_MIN = 60
     MAX_ANGLE = 30
-    BIAS = .5
+    BIAS = 0.05
 
     def __init__(self, head_pos: Vector2) -> None:
         super().__init__()
         self.head = Node(head_pos, 0)
-        self.tail = self.head
+        self.finded_node = self.head
         self.count = 1
         self.started = False
         self.stop = False
+        self.finded_node: Node | None = None
+
+    def __iter__(self):
+        self.__iter_list = [self.head]
+        return self
+
+    def __next__(self):
+        if not self.__iter_list:
+            raise StopIteration
+
+        node = self.__iter_list.pop()
+        self.__iter_list.extend(node.childs)
+        return node
 
     @synchronized(lock)
     def draw(self, screen: Surface) -> None:
@@ -37,15 +50,20 @@ class RRT(Drawable):
             for child in node.childs:
                 line(screen, Color(0, 0, 0), node.pos, child.pos)
 
-    def __get_closest_node(self, to: Vector2) -> Node:
-        l: list[Connection] = list()
-        node_list = [self.head]
-        while node_list:
-            node = node_list.pop()
-            l.append(Connection(node, (node.pos - to).length()))
-            node_list.extend(node.childs)
+        tmp = self.finded_node
+        while tmp:
+            tmp.draw(screen)
+            parent = tmp.parent
+            if parent:
+                line(screen, (155, 155, 155), tmp.pos, parent.pos, 5)
 
-        return min(l, key=lambda x: x.length)._from
+            tmp = parent
+
+    def __get_closest_node(self, to: Vector2) -> Node:
+        return min(
+            [Connection(node, (node.pos - to).length()) for node in self],
+            key=lambda x: x.length,
+        )._from
 
     def refactor_angle(self, angle: float):
         x = -1 if angle < 0 else 1
@@ -64,7 +82,9 @@ class RRT(Drawable):
         else:
             return length
 
-    def __get_closest_point_from_node_with_max_angle(self, node: Node, point: Vector2) -> Vector2:
+    def __get_closest_point_from_node_with_max_angle(
+        self, node: Node, point: Vector2
+    ) -> Vector2:
         dif = point - node.pos
         tmp_angle = np.rad2deg(np.arctan2(dif.y, dif.x))
         dif_angle = node.angle - tmp_angle
@@ -84,30 +104,25 @@ class RRT(Drawable):
     @synchronized(lock)
     def __create_new_node(self, goal: Vector2) -> bool:
         """
-        Creates new node randomly and returns True if new node is close enough to goal 
+        Creates new node randomly and returns True if new node is not close enough to goal
         """
         random_point = self.generate_random_point(goal)
-        node = self.__get_closest_node(random_point)
+        closest_node = self.__get_closest_node(random_point)
         closest_point = self.__get_closest_point_from_node_with_max_angle(
-            node, random_point)
-        child_node = node.add_child(closest_point)
-        self.tail = child_node
+            closest_node, random_point
+        )
+        child_node = closest_node.add_child(closest_point)
         self.count += 1
         if (closest_point - goal).length() > self.MARGIN_MAX:
             return True
         else:
+            self.finded_node = child_node
             child_node.set_selected()
             return False
 
     def __runnable(self, goal: Vector2):
         while self.__create_new_node(goal) and not self.stop:
-            sleep(0.01)
-        tmp = self.tail
-        while tmp:
-            parent = tmp.parent
-            if parent:
-                parent.childs = [n for n in parent.childs if n is tmp]
-            tmp = parent
+            sleep(0.001)
 
     def main(self, goal: Vector2):
         self.started = True
