@@ -52,7 +52,7 @@ class RRT(Drawable):
             tmp.draw(screen)
             parent = tmp.parent
             if parent:
-                line(screen, (155, 155, 155), tmp.pos, parent.pos, 5)
+                line(screen, (200, 200, 255), tmp.pos, parent.pos, 7)
 
             tmp = parent
 
@@ -131,13 +131,19 @@ class RRT(Drawable):
         else:
             self.finded_node = child_node
             self.last_random_point = None
-            child_node.set_selected()
+            # child_node.set_selected()
             return False
 
     def __runnable(self, goal: Vector2):
         while self.__create_new_node(goal) and not self.stop:
             sleep(0.0001)
             # sleep(0.5)
+
+        iter = 0
+        while iter < 5000 and not self.stop:
+            self.__create_new_node(goal)
+            iter += 1
+            sleep(0.0001)
 
     def main(self, goal: Vector2):
         self.started = True

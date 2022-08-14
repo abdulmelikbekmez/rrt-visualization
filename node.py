@@ -4,11 +4,9 @@ from typing import ClassVar
 from pygame.color import Color
 from pygame.math import Vector2
 from constants import *
-from decorators import rad_to_deg
 import numpy as np
 from pygame.draw import circle, line
 from pygame.surface import Surface
-from utils import normalize_angle
 
 
 @dataclass(slots=True)
@@ -16,9 +14,10 @@ class Node:
 
     COLOR: ClassVar[Color] = Color(255, 0, 0)
     COLOR_SELECTED: ClassVar[Color] = Color(0, 255, 0)
-    RADIUS_SELECTED: ClassVar[int] = 20
+    RADIUS_SELECTED: ClassVar[int] = 10
 
     MARGIN_MAX: ClassVar[int] = 50
+    NEIGHBOUR_MAX: ClassVar[int] = MARGIN_MAX + 100
     MARGIN_MIN: ClassVar[int] = 25
     MAX_ANGLE: ClassVar[int] = 30
     ID: ClassVar[int] = 0
@@ -62,7 +61,7 @@ class Node:
 
     def can_be_child(self, other: Node) -> bool:
         direction = other.pos - self.pos
-        if direction.length() > self.MARGIN_MAX:
+        if direction.length() > self.NEIGHBOUR_MAX:
             return False
         angle = self.direction.angle_to(direction)
         angle_abs = abs(angle)
@@ -81,7 +80,7 @@ class Node:
 
     def is_in_range(self, point: Vector2) -> bool:
         direction = point - self.pos
-        if direction.length() > self.MARGIN_MAX:
+        if direction.length() > self.NEIGHBOUR_MAX:
             return False
         angle = abs(self.direction.angle_to(direction))
         if angle > 90:
@@ -89,19 +88,19 @@ class Node:
         else:
             return angle < self.MAX_ANGLE / 2
 
-    def is_close_enough(self, goal_pos: Vector2):
+    def is_close_enough(self, goal_pos: Vector2) -> bool:
         return (self.pos - goal_pos).length() < self.MARGIN_MAX
 
     def draw(self, screen: Surface):
         circle(screen, self.color, self.pos, self.radius)
         v = Vector2()
         v.from_polar((10, self.angle))
-        line(screen, Color(0, 0, 255), self.pos, self.pos + v, 5)
+        line(screen, Color(0, 0, 255), self.pos, self.pos + v, 3)
 
-    @rad_to_deg
     def get_angle_from_child(self, child: Vector2) -> float:
-        dif = child - self.pos
-        return np.arctan2(dif.y, dif.x)
+        direction = child - self.pos
+        dif_angle = self.direction.angle_to(direction)
+        return self.angle + dif_angle
 
     def add_child(self, pos: Vector2, reversed: bool) -> Node:
         angle = self.get_angle_from_child(pos)
