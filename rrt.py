@@ -4,19 +4,15 @@ from pygame.color import Color
 from pygame.math import Vector2
 from decorators import synchronized
 from drawable import Drawable
-from node import Connection, Node
+from node import Node
 from pygame.surface import Surface
 from pygame.draw import circle, line
 from constants import *
 from random import randint as r
 from random import random
-import numpy as np
 
 
 class RRT(Drawable):
-    MARGIN_MAX = 75
-    MARGIN_MIN = 60
-    MAX_ANGLE = 45
     BIAS = 0.05
 
     def __init__(self, head_pos: Vector2) -> None:
@@ -63,10 +59,7 @@ class RRT(Drawable):
             circle(screen, (0, 255, 0), self.last_random_point, 7)
 
     def __get_closest_node(self, to: Vector2) -> Node:
-        return min(
-            [Connection(node, (node.pos - to).length()) for node in self],
-            key=lambda x: x.length,
-        )._from
+        return min([node for node in self], key=lambda node: (node.pos - to).length())
 
     def prepare_angle(self, angle: float) -> float:
         if angle > 180:
@@ -83,29 +76,21 @@ class RRT(Drawable):
         angle = abs(angle)
 
         if angle > 90 and not closest_node.reversed:
-            angle = max(180 - self.MAX_ANGLE / 2, 180 - angle)
+            angle = max(180 - closest_node.MAX_ANGLE / 2, 180 - angle)
             reversed = True
         else:
-            angle = min(self.MAX_ANGLE / 2, angle)
+            angle = min(closest_node.MAX_ANGLE / 2, angle)
             reversed = False
 
         return angle * x, reversed
 
-    def refactor_length(self, length: float):
-        if length > self.MARGIN_MAX:
-            return self.MARGIN_MAX
-        elif length < self.MARGIN_MIN:
-            return self.MARGIN_MIN
-        else:
-            return length
-
     def __get_closest_point_from_node_with_max_angle(
         self, closest_node: Node, random_point: Vector2
     ) -> tuple[Vector2, bool]:
-        dir = random_point - closest_node.pos
-        dif_angle = closest_node.direction.angle_to(dir)
+        direction = random_point - closest_node.pos
+        dif_angle = closest_node.direction.angle_to(direction)
         dif_angle_refactored, reversed = self.refactor_angle(dif_angle, closest_node)
-        length = self.refactor_length(dir.length())
+        length = Node.refactor_length(direction.length())
         v = Vector2()
         v.from_polar((length, closest_node.angle + dif_angle_refactored))
         return closest_node.pos + v, reversed
@@ -116,6 +101,14 @@ class RRT(Drawable):
             return goal
 
         return Vector2(r(0, WIDTH), r(0, HEIGHT))
+
+    def get_best_parent(self, closest_point: Vector2, current_parent: Node) -> Node:
+        l = [node for node in self if node.is_in_range(closest_point)]
+        return (
+            min(l, key=lambda node: node.cost + (node.pos - closest_point).length())
+            if l
+            else current_parent
+        )
 
     @synchronized(lock)
     def __create_new_node(self, goal: Vector2) -> bool:
@@ -128,9 +121,9 @@ class RRT(Drawable):
         closest_point, reversed = self.__get_closest_point_from_node_with_max_angle(
             closest_node, random_point
         )
-        child_node = closest_node.add_child(closest_point, reversed)
-        self.count += 1
-        if (closest_point - goal).length() > self.MARGIN_MAX:
+        parent = self.get_best_parent(closest_point, closest_node)
+        child_node = parent.add_child(closest_point, reversed)
+        if not child_node.is_close_enough(goal):
             return True
         else:
             self.finded_node = child_node
@@ -140,8 +133,8 @@ class RRT(Drawable):
 
     def __runnable(self, goal: Vector2):
         while self.__create_new_node(goal) and not self.stop:
-            # sleep(0.0001)
-            sleep(0.5)
+            sleep(0.0001)
+            # sleep(0.5)
 
     def main(self, goal: Vector2):
         self.started = True

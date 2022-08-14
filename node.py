@@ -15,17 +15,28 @@ class Node:
 
     COLOR: ClassVar[Color] = Color(255, 0, 0)
     COLOR_SELECTED: ClassVar[Color] = Color(0, 255, 0)
-    RADIUS_SELECTED = 20
+    RADIUS_SELECTED: ClassVar[int] = 20
+
+    MARGIN_MAX: ClassVar[int] = 75
+    MARGIN_MIN: ClassVar[int] = 60
+    MAX_ANGLE: ClassVar[int] = 45
     ID: ClassVar[int] = 0
 
     pos: Vector2
     angle: float  # degree
     reversed: bool
     parent: Node | None = None
+    cost: float = 0
     childs: list[Node] = field(default_factory=list)
     color: Color = field(init=False)
     id: int = field(init=False)
     radius: float = 5
+
+    @property
+    def direction(self) -> Vector2:
+        x = np.cos(np.deg2rad(self.angle))
+        y = np.sin(np.deg2rad(self.angle))
+        return Vector2(x, y)
 
     def __post_init__(self):
         self.color = self.COLOR
@@ -39,11 +50,23 @@ class Node:
             case _:
                 return False
 
-    @property
-    def direction(self) -> Vector2:
-        x = np.cos(np.deg2rad(self.angle))
-        y = np.sin(np.deg2rad(self.angle))
-        return Vector2(x, y)
+    @classmethod
+    def refactor_length(cls, length: float) -> float:
+        if length > cls.MARGIN_MAX:
+            return cls.MARGIN_MAX
+        elif length < cls.MARGIN_MIN:
+            return cls.MARGIN_MIN
+        else:
+            return length
+
+    def is_in_range(self, point: Vector2) -> bool:
+        dir = point - self.pos
+        if dir.length() > self.MARGIN_MAX:
+            return False
+        return abs(self.direction.angle_to(dir)) < self.MAX_ANGLE / 2
+
+    def is_close_enough(self, goal_pos: Vector2):
+        return (self.pos - goal_pos).length() < self.MARGIN_MAX
 
     def draw(self, screen: Surface):
         circle(screen, self.color, self.pos, self.radius)
@@ -58,16 +81,11 @@ class Node:
 
     def add_child(self, pos: Vector2, reversed: bool) -> Node:
         angle = self.__get_angle_from_child(pos)
-        child = Node(pos, angle, reversed, self)
+        cost = (self.pos - pos).length()
+        child = Node(pos, angle, reversed, self, self.cost + cost)
         self.childs.append(child)
         return child
 
     def set_selected(self):
         self.radius = self.RADIUS_SELECTED
         self.color = self.COLOR_SELECTED
-
-
-@dataclass(slots=True)
-class Connection:
-    _from: Node
-    length: float
