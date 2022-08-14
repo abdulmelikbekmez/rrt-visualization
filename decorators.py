@@ -1,4 +1,5 @@
 from threading import RLock
+from time import perf_counter
 import numpy as np
 
 
@@ -15,6 +16,20 @@ def synchronized(lock: RLock):
             return res
 
         return inner
+
+    return wrapper
+
+
+def benchmark(fn):
+    def wrapper(*args, **kwargs):
+
+        start = perf_counter()
+        res = fn(*args, **kwargs)
+        finish = perf_counter()
+        dif = finish - start
+
+        print(f"{fn.__name__} execution time => {dif:.5f}")
+        return res
 
     return wrapper
 

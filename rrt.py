@@ -1,8 +1,9 @@
 from threading import Thread
 from time import sleep
+from utils import normalize_angle
 from pygame.color import Color
 from pygame.math import Vector2
-from decorators import synchronized
+from decorators import benchmark, synchronized
 from drawable import Drawable
 from node import Node
 from pygame.surface import Surface
@@ -61,15 +62,8 @@ class RRT(Drawable):
     def __get_closest_node(self, to: Vector2) -> Node:
         return min([node for node in self], key=lambda node: (node.pos - to).length())
 
-    def prepare_angle(self, angle: float) -> float:
-        if angle > 180:
-            return angle - 360
-        elif angle < -180:
-            return angle + 360
-        return angle
-
     def refactor_angle(self, angle: float, closest_node: Node) -> tuple[float, bool]:
-        angle = self.prepare_angle(angle)
+        angle = normalize_angle(angle)
         if angle > 180 or angle < -180:
             raise Exception("wrong angle!!")
         x = -1 if angle < 0 else 1
@@ -110,6 +104,14 @@ class RRT(Drawable):
             else current_parent
         )
 
+    def rewire(self, possible_parent: Node) -> None:
+        neighbours = [node for node in self if possible_parent.can_be_child(node)]
+        for neighbour in neighbours:
+            cost = (neighbour.pos - possible_parent.pos).length()
+            new_cost = possible_parent.cost + cost
+            if new_cost < neighbour.cost:
+                neighbour.update_parent(possible_parent, new_cost)
+
     @synchronized(lock)
     def __create_new_node(self, goal: Vector2) -> bool:
         """
@@ -123,6 +125,7 @@ class RRT(Drawable):
         )
         parent = self.get_best_parent(closest_point, closest_node)
         child_node = parent.add_child(closest_point, reversed)
+        self.rewire(child_node)
         if not child_node.is_close_enough(goal):
             return True
         else:

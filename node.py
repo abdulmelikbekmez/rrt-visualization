@@ -8,6 +8,7 @@ from decorators import rad_to_deg
 import numpy as np
 from pygame.draw import circle, line
 from pygame.surface import Surface
+from utils import normalize_angle
 
 
 @dataclass(slots=True)
@@ -17,9 +18,9 @@ class Node:
     COLOR_SELECTED: ClassVar[Color] = Color(0, 255, 0)
     RADIUS_SELECTED: ClassVar[int] = 20
 
-    MARGIN_MAX: ClassVar[int] = 75
-    MARGIN_MIN: ClassVar[int] = 60
-    MAX_ANGLE: ClassVar[int] = 45
+    MARGIN_MAX: ClassVar[int] = 50
+    MARGIN_MIN: ClassVar[int] = 25
+    MAX_ANGLE: ClassVar[int] = 30
     ID: ClassVar[int] = 0
 
     pos: Vector2
@@ -59,11 +60,34 @@ class Node:
         else:
             return length
 
-    def is_in_range(self, point: Vector2) -> bool:
-        dir = point - self.pos
-        if dir.length() > self.MARGIN_MAX:
+    def can_be_child(self, other: Node) -> bool:
+        direction = other.pos - self.pos
+        if direction.length() > self.MARGIN_MAX:
             return False
-        return abs(self.direction.angle_to(dir)) < self.MAX_ANGLE / 2
+        angle = self.direction.angle_to(direction)
+        angle_abs = abs(angle)
+        if angle_abs > 90 and not 180 - angle_abs > 180 - self.MARGIN_MAX / 2:
+            return False
+        elif not angle_abs < self.MAX_ANGLE / 2:
+            return False
+
+        new_angle = self.get_angle_from_child(other.pos)
+        for child in other.childs:
+            dif = abs(child.angle - new_angle)
+            if dif > self.MAX_ANGLE / 2:
+                return False
+
+        return True
+
+    def is_in_range(self, point: Vector2) -> bool:
+        direction = point - self.pos
+        if direction.length() > self.MARGIN_MAX:
+            return False
+        angle = abs(self.direction.angle_to(direction))
+        if angle > 90:
+            return 180 - angle > 180 - self.MARGIN_MAX / 2
+        else:
+            return angle < self.MAX_ANGLE / 2
 
     def is_close_enough(self, goal_pos: Vector2):
         return (self.pos - goal_pos).length() < self.MARGIN_MAX
@@ -75,17 +99,27 @@ class Node:
         line(screen, Color(0, 0, 255), self.pos, self.pos + v, 5)
 
     @rad_to_deg
-    def __get_angle_from_child(self, child: Vector2):
+    def get_angle_from_child(self, child: Vector2) -> float:
         dif = child - self.pos
         return np.arctan2(dif.y, dif.x)
 
     def add_child(self, pos: Vector2, reversed: bool) -> Node:
-        angle = self.__get_angle_from_child(pos)
+        angle = self.get_angle_from_child(pos)
         cost = (self.pos - pos).length()
         child = Node(pos, angle, reversed, self, self.cost + cost)
         self.childs.append(child)
         return child
 
-    def set_selected(self):
+    def update_parent(self, new_parent: Node, new_cost: float) -> None:
+        if self.parent:
+            self.parent.childs.remove(self)
+
+        self.parent = new_parent
+        self.parent.childs.append(self)
+
+        self.angle = self.parent.get_angle_from_child(self.pos)
+        self.cost = new_cost
+
+    def set_selected(self) -> None:
         self.radius = self.RADIUS_SELECTED
         self.color = self.COLOR_SELECTED
