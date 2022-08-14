@@ -20,6 +20,7 @@ class Node:
 
     pos: Vector2
     angle: float  # degree
+    reversed: bool
     parent: Node | None = None
     childs: list[Node] = field(default_factory=list)
     color: Color = field(init=False)
@@ -38,6 +39,12 @@ class Node:
             case _:
                 return False
 
+    @property
+    def direction(self) -> Vector2:
+        x = np.cos(np.deg2rad(self.angle))
+        y = np.sin(np.deg2rad(self.angle))
+        return Vector2(x, y)
+
     def draw(self, screen: Surface):
         circle(screen, self.color, self.pos, self.radius)
         v = Vector2()
@@ -49,9 +56,9 @@ class Node:
         dif = child - self.pos
         return np.arctan2(dif.y, dif.x)
 
-    def add_child(self, pos: Vector2) -> Node:
+    def add_child(self, pos: Vector2, reversed: bool) -> Node:
         angle = self.__get_angle_from_child(pos)
-        child = Node(pos, angle, self)
+        child = Node(pos, angle, reversed, self)
         self.childs.append(child)
         return child
 

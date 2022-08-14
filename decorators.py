@@ -20,7 +20,6 @@ def synchronized(lock: RLock):
 
 
 def rad_to_deg(fn):
-
     def wrapper(*args, **kwargs):
 
         rad = fn(*args, **kwargs)
