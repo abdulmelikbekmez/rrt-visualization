@@ -1,6 +1,6 @@
 # About
 
-Its pygame based rrt search algorithm visualization tool. To start with just pick 2 random point and watch the beauty.
+Its pygame based visualization tool for rrt search algorithm for robots which has kinematic constraints. To start with just pick 2 random point and watch the beauty.
 To reset just press "r" button.
 
 # Prerequests
