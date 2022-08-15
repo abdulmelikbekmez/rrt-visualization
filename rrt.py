@@ -59,6 +59,9 @@ class RRT(Drawable):
         if self.last_random_point:
             circle(screen, (0, 255, 0), self.last_random_point, 7)
 
+        if self.finded_node:
+            circle(screen, (0, 0, 255), self.finded_node.pos, 5)
+
     def __get_closest_node(self, to: Vector2) -> Node:
         return min([node for node in self], key=lambda node: (node.pos - to).length())
 
@@ -78,6 +81,19 @@ class RRT(Drawable):
 
         return angle * x, reversed
 
+    @staticmethod
+    def __generate_random_point_from_ellipse(
+        a: float, b: float, angle: float, pos: Vector2
+    ) -> Vector2:
+        point = Vector2()
+        point.from_polar((random(), random() * 360))
+
+        point.x *= a
+        point.y *= b
+        point = point.rotate(angle)
+        point += pos
+        return point
+
     def __get_closest_point_from_node_with_max_angle(
         self, closest_node: Node, random_point: Vector2
     ) -> tuple[Vector2, bool]:
@@ -93,6 +109,19 @@ class RRT(Drawable):
         rand = random()
         if rand < self.BIAS:
             return goal
+
+        # informed rrt star feature
+        if self.finded_node:
+            length = (self.head.pos - self.finded_node.pos).length()
+            center = (self.head.pos + self.finded_node.pos) / 2
+            dir = self.finded_node.pos - self.head.pos
+            angle = Vector2().angle_to(dir)
+            x = length / 2
+            d = self.finded_node.cost / 2
+            a = self.finded_node.cost / 2
+            b = (d**2 - x**2) ** 0.5
+            new_point = self.__generate_random_point_from_ellipse(a, b, angle, center)
+            return new_point
 
         return Vector2(r(0, WIDTH), r(0, HEIGHT))
 
@@ -112,6 +141,14 @@ class RRT(Drawable):
             if new_cost < neighbour.cost:
                 neighbour.update_parent(possible_parent, new_cost)
 
+    def set_finded_node(self, new_node: Node) -> None:
+        if not self.finded_node:
+            self.finded_node = new_node
+            return
+
+        if new_node.cost < self.finded_node.cost:
+            self.finded_node = new_node
+
     @synchronized(lock)
     def __create_new_node(self, goal: Vector2) -> bool:
         """
@@ -129,7 +166,7 @@ class RRT(Drawable):
         if not child_node.is_close_enough(goal):
             return True
         else:
-            self.finded_node = child_node
+            self.set_finded_node(child_node)
             self.last_random_point = None
             # child_node.set_selected()
             return False
