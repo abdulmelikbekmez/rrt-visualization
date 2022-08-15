@@ -17,7 +17,7 @@ class Node:
     RADIUS_SELECTED: ClassVar[int] = 10
 
     MARGIN_MAX: ClassVar[int] = 50
-    NEIGHBOUR_MAX: ClassVar[int] = MARGIN_MAX + 100
+    NEIGHBOUR_MAX: ClassVar[int] = MARGIN_MAX + 20
     MARGIN_MIN: ClassVar[int] = 25
     MAX_ANGLE: ClassVar[int] = 30
     ID: ClassVar[int] = 0
@@ -92,7 +92,7 @@ class Node:
         return (self.pos - goal_pos).length() < self.MARGIN_MAX
 
     def draw(self, screen: Surface):
-        circle(screen, self.color, self.pos, self.radius)
+        # circle(screen, self.color, self.pos, self.radius)
         v = Vector2()
         v.from_polar((10, self.angle))
         line(screen, Color(0, 0, 255), self.pos, self.pos + v, 3)
@@ -109,6 +109,12 @@ class Node:
         self.childs.append(child)
         return child
 
+    def update_childs_costs(self):
+        for child in self.childs:
+            new_cost = (self.pos - child.pos).length()
+            child.cost = self.cost + new_cost
+            child.update_childs_costs()
+
     def update_parent(self, new_parent: Node, new_cost: float) -> None:
         if self.parent:
             self.parent.childs.remove(self)
@@ -118,6 +124,7 @@ class Node:
 
         self.angle = self.parent.get_angle_from_child(self.pos)
         self.cost = new_cost
+        self.update_childs_costs()
 
     def set_selected(self) -> None:
         self.radius = self.RADIUS_SELECTED

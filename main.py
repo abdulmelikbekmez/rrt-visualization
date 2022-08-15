@@ -3,7 +3,9 @@ from pygame.math import Vector2
 from pygame.time import Clock
 from drawable import Drawable
 from constants import *
+from obstacle import Obstacle
 from rrt import RRT
+from random import randint as rint
 
 
 class App:
@@ -17,7 +19,10 @@ class App:
         self.start: Vector2 | None = None
         self.finish: Vector2 | None = None
         self.tree: RRT | None = None
-        self.drawable_list: list[Drawable] = []
+        l = [Obstacle(Vector2(rint(0, WIDTH), rint(0, HEIGHT))) for _ in range(50)]
+        self.drawable_list: list[Drawable] = [*l]
+        self.obstacle_list: list[Obstacle] = l
+        RRT.OBSTACLE_LIST = self.obstacle_list
 
     def main(self):
         while self.running:

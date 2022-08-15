@@ -1,9 +1,10 @@
 from threading import Thread
 from time import sleep
+from obstacle import Obstacle
 from utils import normalize_angle
 from pygame.color import Color
 from pygame.math import Vector2
-from decorators import benchmark, synchronized
+from decorators import synchronized
 from drawable import Drawable
 from node import Node
 from pygame.surface import Surface
@@ -15,10 +16,11 @@ from random import random
 
 class RRT(Drawable):
     BIAS = 0.05
+    OBSTACLE_LIST: list[Obstacle]
 
     def __init__(self, head_pos: Vector2) -> None:
         super().__init__()
-        self.head = Node(head_pos, 0, False)
+        self.head = Node(head_pos, 180, False)
         self.count = 1
         self.started = False
         self.stop = False
@@ -67,8 +69,6 @@ class RRT(Drawable):
 
     def refactor_angle(self, angle: float, closest_node: Node) -> tuple[float, bool]:
         angle = normalize_angle(angle)
-        if angle > 180 or angle < -180:
-            raise Exception("wrong angle!!")
         x = -1 if angle < 0 else 1
         angle = abs(angle)
 
@@ -86,7 +86,7 @@ class RRT(Drawable):
         a: float, b: float, angle: float, pos: Vector2
     ) -> Vector2:
         point = Vector2()
-        point.from_polar((random(), random() * 360))
+        point.from_polar((random() ** 0.5, random() * 360))
 
         point.x *= a
         point.y *= b
@@ -160,6 +160,15 @@ class RRT(Drawable):
         closest_point, reversed = self.__get_closest_point_from_node_with_max_angle(
             closest_node, random_point
         )
+
+        while any([obs.collided(closest_point) for obs in self.OBSTACLE_LIST]):
+            random_point = self.generate_random_point(goal)
+            self.last_random_point = random_point
+            closest_node = self.__get_closest_node(random_point)
+            closest_point, reversed = self.__get_closest_point_from_node_with_max_angle(
+                closest_node, random_point
+            )
+
         parent = self.get_best_parent(closest_point, closest_node)
         child_node = parent.add_child(closest_point, reversed)
         self.rewire(child_node)
@@ -177,7 +186,7 @@ class RRT(Drawable):
             # sleep(0.5)
 
         iter = 0
-        while iter < 5000 and not self.stop:
+        while iter < 1000 and not self.stop:
             self.__create_new_node(goal)
             iter += 1
             sleep(0.0001)
