@@ -182,14 +182,14 @@ class RRT(Drawable):
 
     def __runnable(self, goal: Vector2):
         while self.__create_new_node(goal) and not self.stop:
-            sleep(0.0001)
+            sleep(0.00001)
             # sleep(0.5)
 
         iter = 0
-        while iter < 1000 and not self.stop:
+        while iter < 5000 and not self.stop:
             self.__create_new_node(goal)
             iter += 1
-            sleep(0.0001)
+            sleep(0.00001)
 
     def main(self, goal: Vector2):
         self.started = True
