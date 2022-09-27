@@ -19,9 +19,10 @@ class App:
         self.start: Vector2 | None = None
         self.finish: Vector2 | None = None
         self.tree: RRT | None = None
-        l = [Obstacle(Vector2(rint(0, WIDTH), rint(0, HEIGHT))) for _ in range(50)]
-        self.drawable_list: list[Drawable] = [*l]
-        self.obstacle_list: list[Obstacle] = l
+        self.obstacle_list: list[Obstacle] = [
+            Obstacle(Vector2(rint(0, WIDTH), rint(0, HEIGHT))) for _ in range(50)
+        ]
+        self.drawable_list: list[Drawable] = [*self.obstacle_list]
         RRT.OBSTACLE_LIST = self.obstacle_list
 
     def main(self):
@@ -54,15 +55,14 @@ class App:
                     self.tree.stop = True
                     self.tree = None
 
-            if event.type == pg.MOUSEBUTTONDOWN:
-                if pg.mouse.get_pressed()[0]:
-                    x, y = pg.mouse.get_pos()
-                    if self.tree is None:
-                        self.tree = RRT(Vector2(x, y))
-                        self.drawable_list.append(self.tree)
+            if event.type == pg.MOUSEBUTTONDOWN and pg.mouse.get_pressed()[0]:
+                x, y = pg.mouse.get_pos()
+                if self.tree is None:
+                    self.tree = RRT(Vector2(x, y))
+                    self.drawable_list.append(self.tree)
 
-                    elif not self.tree.started:
-                        self.tree.main(Vector2(x, y))
+                elif not self.tree.started:
+                    self.tree.main(Vector2(x, y))
 
     def __update(self):
         pass

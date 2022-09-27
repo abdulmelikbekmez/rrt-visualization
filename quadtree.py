@@ -24,20 +24,19 @@ class QuadTree:
             return True
 
         if not self.divided_list:
-            self.divide()
+            self.__divide()
 
         return any(quadtree.insert(node) for quadtree in self.divided_list)
 
-    def get_closest_node(self, point: Vector2):
-        parent = self
-        l = [parent]
+    # def get_closest_node(self, point: Vector2):
+    #     parent = self
+    #
+    #     while any(
+    #         [i.boundary.collidepoint(point.x, point.y) for i in parent.divided_list]
+    #     ):
+    #         pass
 
-        while any(
-            [i.boundary.collidepoint(point.x, point.y) for i in parent.divided_list]
-        ):
-            pass
-
-    def divide(self) -> None:
+    def __divide(self) -> None:
         if self.divided_list:
             raise Exception("already divided")
 
@@ -58,21 +57,16 @@ class QuadTree:
             QuadTree(Rect(self.boundary.centerx, self.boundary.centery, w, h))
         )
 
-    def query(self, boundary: Rect) -> list[Node]:
-        l = []
-        self._query(boundary, l)
-        return l
-
     def query_radius(self, radius: float, center: Vector2) -> list[Node]:
         l: list[Node] = []
         left = center.x - radius
         top = center.y - radius
         boundary = Rect(left, top, radius * 2, radius * 2)
-        self._query(boundary, l)
+        self.__query(boundary, l)
 
         return [p for p in l if (p.pos - center).length() <= radius]
 
-    def _query(self, boundary: Rect, node_list: list[Node]) -> None:
+    def __query(self, boundary: Rect, node_list: list[Node]) -> None:
         if not self.boundary.colliderect(boundary):
             return
 
@@ -80,7 +74,7 @@ class QuadTree:
             if self.boundary.collidepoint(node.pos.x, node.pos.y):
                 node_list.append(node)
 
-        [quad._query(boundary, node_list) for quad in self.divided_list]
+        [quad.__query(boundary, node_list) for quad in self.divided_list]
 
     def draw(self, screen: Surface):
         rect(screen, (0, 0, 0), self.boundary, 1)

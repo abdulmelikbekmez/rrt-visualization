@@ -5,7 +5,7 @@ from pygame.color import Color
 from pygame.math import Vector2
 from constants import *
 import numpy as np
-from pygame.draw import circle, line
+from pygame.draw import line
 from pygame.surface import Surface
 
 

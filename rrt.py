@@ -1,6 +1,7 @@
 from threading import Thread
 from time import sleep
 from obstacle import Obstacle
+from quadtree import QuadTree
 from utils import normalize_angle
 from pygame.color import Color
 from pygame.math import Vector2
@@ -9,19 +10,21 @@ from drawable import Drawable
 from node import Node
 from pygame.surface import Surface
 from pygame.draw import circle, line
+from pygame.rect import Rect
 from constants import *
 from random import randint as r
 from random import random
 
 
 class RRT(Drawable):
-    BIAS = 0.05
+    BIAS = 0.00
     OBSTACLE_LIST: list[Obstacle]
 
     def __init__(self, head_pos: Vector2) -> None:
         super().__init__()
+        self.quadTree = QuadTree(Rect(0, 0, WIDTH, HEIGHT))
         self.head = Node(head_pos, 180, False)
-        self.count = 1
+        self.quadTree.insert(self.head)
         self.started = False
         self.stop = False
         self.finded_node: Node | None = None
@@ -41,6 +44,7 @@ class RRT(Drawable):
 
     @synchronized(lock)
     def draw(self, screen: Surface) -> None:
+        self.quadTree.draw(screen)
         l = [self.head]
         while l:
             node = l.pop()
@@ -54,7 +58,7 @@ class RRT(Drawable):
             tmp.draw(screen)
             parent = tmp.parent
             if parent:
-                line(screen, (200, 200, 255), tmp.pos, parent.pos, 7)
+                line(screen, (200, 100, 100), tmp.pos, parent.pos, 7)
 
             tmp = parent
 
@@ -126,7 +130,15 @@ class RRT(Drawable):
         return Vector2(r(0, WIDTH), r(0, HEIGHT))
 
     def get_best_parent(self, closest_point: Vector2, current_parent: Node) -> Node:
-        l = [node for node in self if node.is_in_range(closest_point)]
+
+        l = [
+            node
+            for node in self.quadTree.query_radius(Node.NEIGHBOUR_MAX, closest_point)
+            if node.is_in_range(closest_point)
+        ]
+
+        # l = [node for node in self if node.is_in_range(closest_point)]
+
         return (
             min(l, key=lambda node: node.cost + (node.pos - closest_point).length())
             if l
@@ -134,7 +146,16 @@ class RRT(Drawable):
         )
 
     def rewire(self, possible_parent: Node) -> None:
-        neighbours = [node for node in self if possible_parent.can_be_child(node)]
+        neighbours = [
+            node
+            for node in self.quadTree.query_radius(
+                Node.NEIGHBOUR_MAX, possible_parent.pos
+            )
+            if possible_parent.can_be_child(node)
+        ]
+
+        # neighbours = [node for node in self if possible_parent.can_be_child(node)]
+
         for neighbour in neighbours:
             cost = (neighbour.pos - possible_parent.pos).length()
             new_cost = possible_parent.cost + cost
@@ -171,6 +192,7 @@ class RRT(Drawable):
 
         parent = self.get_best_parent(closest_point, closest_node)
         child_node = parent.add_child(closest_point, reversed)
+        self.quadTree.insert(child_node)
         self.rewire(child_node)
         if not child_node.is_close_enough(goal):
             return True
@@ -182,14 +204,15 @@ class RRT(Drawable):
 
     def __runnable(self, goal: Vector2):
         while self.__create_new_node(goal) and not self.stop:
-            sleep(0.00001)
+            sleep(0.000001)
             # sleep(0.5)
 
         iter = 0
-        while iter < 5000 and not self.stop:
+        while iter < 10000 and not self.stop:
             self.__create_new_node(goal)
             iter += 1
-            sleep(0.00001)
+            sleep(0.000001)
+            # sleep(0.5)
 
     def main(self, goal: Vector2):
         self.started = True
