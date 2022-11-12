@@ -13,5 +13,5 @@ class Obstacle(Drawable):
     def draw(self, screen: Surface) -> None:
         rect(screen, (0, 0, 0), self.rect)
 
-    def collided(self, point: Vector2):
+    def collided(self, point: Vector2) -> bool:
         return self.rect.collidepoint(point.x, point.y)

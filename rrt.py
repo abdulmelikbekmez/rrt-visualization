@@ -1,11 +1,9 @@
 from threading import Thread
-from time import sleep
 from obstacle import Obstacle
 from quadtree import QuadTree
 from utils import normalize_angle
 from pygame.color import Color
 from pygame.math import Vector2
-from decorators import synchronized
 from drawable import Drawable
 from node import Node
 from pygame.surface import Surface
@@ -22,9 +20,9 @@ class RRT(Drawable):
 
     def __init__(self, head_pos: Vector2) -> None:
         super().__init__()
-        self.quadTree = QuadTree(Rect(0, 0, WIDTH, HEIGHT))
+        self.quad_tree = QuadTree(Rect(0, 0, WIDTH, HEIGHT))
         self.head = Node(head_pos, 180, False)
-        self.quadTree.insert(self.head)
+        self.quad_tree.insert(self.head)
         self.started = False
         self.stop = False
         self.finded_node: Node | None = None
@@ -42,9 +40,8 @@ class RRT(Drawable):
         self.__iter_list.extend(node.childs)
         return node
 
-    @synchronized(lock)
     def draw(self, screen: Surface) -> None:
-        self.quadTree.draw(screen)
+        # self.quad_tree.draw(screen)
         l = [self.head]
         while l:
             node = l.pop()
@@ -133,7 +130,7 @@ class RRT(Drawable):
 
         l = [
             node
-            for node in self.quadTree.query_radius(Node.NEIGHBOUR_MAX, closest_point)
+            for node in self.quad_tree.query_radius(Node.NEIGHBOUR_MAX, closest_point)
             if node.is_in_range(closest_point)
         ]
 
@@ -148,7 +145,7 @@ class RRT(Drawable):
     def rewire(self, possible_parent: Node) -> None:
         neighbours = [
             node
-            for node in self.quadTree.query_radius(
+            for node in self.quad_tree.query_radius(
                 Node.NEIGHBOUR_MAX, possible_parent.pos
             )
             if possible_parent.can_be_child(node)
@@ -170,7 +167,6 @@ class RRT(Drawable):
         if new_node.cost < self.finded_node.cost:
             self.finded_node = new_node
 
-    @synchronized(lock)
     def __create_new_node(self, goal: Vector2) -> bool:
         """
         Creates new node randomly and returns True if new node is not close enough to goal
@@ -182,7 +178,7 @@ class RRT(Drawable):
             closest_node, random_point
         )
 
-        while any([obs.collided(closest_point) for obs in self.OBSTACLE_LIST]):
+        while any((obs.collided(closest_point) for obs in self.OBSTACLE_LIST)):
             random_point = self.generate_random_point(goal)
             self.last_random_point = random_point
             closest_node = self.__get_closest_node(random_point)
@@ -192,7 +188,7 @@ class RRT(Drawable):
 
         parent = self.get_best_parent(closest_point, closest_node)
         child_node = parent.add_child(closest_point, reversed)
-        self.quadTree.insert(child_node)
+        self.quad_tree.insert(child_node)
         self.rewire(child_node)
         if not child_node.is_close_enough(goal):
             return True
@@ -202,19 +198,20 @@ class RRT(Drawable):
             # child_node.set_selected()
             return False
 
-    def __runnable(self, goal: Vector2):
+    def __runnable(self, goal: Vector2) -> None:
         while self.__create_new_node(goal) and not self.stop:
-            sleep(0.000001)
+            pass
+            # sleep(0.00000001)
             # sleep(0.5)
 
         iter = 0
         while iter < 10000 and not self.stop:
             self.__create_new_node(goal)
             iter += 1
-            sleep(0.000001)
+            # sleep(0.00000001)
             # sleep(0.5)
 
-    def main(self, goal: Vector2):
+    def main(self, goal: Vector2) -> None:
         self.started = True
         Thread(target=self.__runnable, args=(goal,)).start()
 

@@ -18,14 +18,15 @@ class App:
         self.running = True
         self.start: Vector2 | None = None
         self.finish: Vector2 | None = None
+        self.tmp = 5
         self.tree: RRT | None = None
-        self.obstacle_list: list[Obstacle] = [
-            Obstacle(Vector2(rint(0, WIDTH), rint(0, HEIGHT))) for _ in range(50)
+        self.obstacle_list = [
+            Obstacle(Vector2(rint(0, WIDTH), rint(0, HEIGHT))) for _ in range(100)
         ]
         self.drawable_list: list[Drawable] = [*self.obstacle_list]
         RRT.OBSTACLE_LIST = self.obstacle_list
 
-    def main(self):
+    def main(self) -> None:
         while self.running:
             self.__event_handler()
             self.screen.fill(self.BACKGROUND_COLOR)
@@ -38,11 +39,11 @@ class App:
             pg.display.set_caption(f"FPS => {self.clock.get_fps()}")
             pg.display.update()
 
-    def __del__(self):
+    def __del__(self) -> None:
         if self.tree:
             self.tree.stop = True
 
-    def __event_handler(self):
+    def __event_handler(self) -> None:
         for event in pg.event.get():
             if event.type is pg.QUIT:
                 self.running = False
@@ -67,7 +68,7 @@ class App:
     def __update(self):
         pass
 
-    def __draw(self):
+    def __draw(self) -> None:
         for drawable in self.drawable_list:
             drawable.draw(self.screen)
 
