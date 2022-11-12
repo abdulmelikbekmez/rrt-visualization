@@ -15,12 +15,20 @@ from random import random
 
 
 class RRT(Drawable):
+    MAP_MARGIN = 100
     BIAS = 0.00
     OBSTACLE_LIST: list[Obstacle]
 
     def __init__(self, head_pos: Vector2) -> None:
         super().__init__()
-        self.quad_tree = QuadTree(Rect(0, 0, WIDTH, HEIGHT))
+        self.quad_tree = QuadTree(
+            Rect(
+                0 - self.MAP_MARGIN,
+                0 - self.MAP_MARGIN,
+                WIDTH + self.MAP_MARGIN * 2,
+                HEIGHT + self.MAP_MARGIN * 2,
+            )
+        )
         self.head = Node(head_pos, 180, False)
         self.quad_tree.insert(self.head)
         self.started = False
@@ -65,8 +73,16 @@ class RRT(Drawable):
         if self.finded_node:
             circle(screen, (0, 0, 255), self.finded_node.pos, 5)
 
+    # @benchmark
+    # def __tmp(self, to: Vector2) -> Node:
+    #     return min([node for node in self], key=lambda node: (node.pos - to).length())
+
     def __get_closest_node(self, to: Vector2) -> Node:
-        return min([node for node in self], key=lambda node: (node.pos - to).length())
+        # a = self.__tmp(to)
+        b = self.quad_tree.get_closest_node(to)
+        # if a.pos != b.pos:
+        #     raise Exception("must be equal!!!")
+        return b
 
     def refactor_angle(self, angle: float, closest_node: Node) -> tuple[float, bool]:
         angle = normalize_angle(angle)
@@ -93,6 +109,16 @@ class RRT(Drawable):
         point.y *= b
         point = point.rotate(angle)
         point += pos
+        if point.x > WIDTH:
+            point.x = WIDTH
+        elif point.x < 0:
+            point.x = 0
+
+        if point.y > HEIGHT:
+            point.y = HEIGHT
+        elif point.y < 0:
+            point.y = 0
+
         return point
 
     def __get_closest_point_from_node_with_max_angle(
@@ -188,7 +214,8 @@ class RRT(Drawable):
 
         parent = self.get_best_parent(closest_point, closest_node)
         child_node = parent.add_child(closest_point, reversed)
-        self.quad_tree.insert(child_node)
+        if not self.quad_tree.insert(child_node):
+            raise Exception("quad tree insertion error!!!")
         self.rewire(child_node)
         if not child_node.is_close_enough(goal):
             return True

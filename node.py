@@ -16,9 +16,9 @@ class Node:
     COLOR_SELECTED: ClassVar[Color] = Color(0, 255, 0)
     RADIUS_SELECTED: ClassVar[int] = 10
 
-    MARGIN_MAX: ClassVar[int] = 20
-    NEIGHBOUR_MAX: ClassVar[int] = MARGIN_MAX + 20
     MARGIN_MIN: ClassVar[int] = 15
+    MARGIN_MAX: ClassVar[int] = MARGIN_MIN + 10
+    NEIGHBOUR_MAX: ClassVar[int] = MARGIN_MAX + 20
     MAX_ANGLE: ClassVar[int] = 30
     ID: ClassVar[int] = 0
 
