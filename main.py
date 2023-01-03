@@ -5,7 +5,6 @@ from drawable import Drawable
 from constants import *
 from obstacle import Obstacle
 from rrt import RRT
-from random import randint as rint
 
 
 class App:
@@ -20,9 +19,7 @@ class App:
         self.finish: Vector2 | None = None
         self.tmp = 5
         self.tree: RRT | None = None
-        self.obstacle_list = [
-            Obstacle(Vector2(rint(0, WIDTH), rint(0, HEIGHT))) for _ in range(100)
-        ]
+        self.obstacle_list = [Obstacle.random(WIDTH, HEIGHT) for _ in range(100)]
         self.drawable_list: list[Drawable] = [*self.obstacle_list]
         RRT.OBSTACLE_LIST = self.obstacle_list
 
